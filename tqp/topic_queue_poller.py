@@ -8,7 +8,7 @@ from .threading_utils import Interval
 # -----------------------------------------------------------------------------
 
 
-def _jsonize_dictionary(dictionary):
+def _jsonify_dictionary(dictionary):
     return {k: json.dumps(v) for k, v in dictionary.items()}
 
 
@@ -22,7 +22,7 @@ def create_queue(queue_name, **kwargs):
 
     def _create_queue(name, attirbutes):
         return sqs.create_queue(
-            QueueName=name, Attributes=_jsonize_dictionary(attirbutes),
+            QueueName=name, Attributes=_jsonify_dictionary(attirbutes),
         )
 
     dead_letter_queue = _create_queue('{}-dead-letter'.format(queue_name), {
@@ -177,7 +177,7 @@ class TopicQueuePoller(QueuePollerBase):
 
             topic.subscribe(Protocol='sqs', Endpoint=queue_arn)
 
-        queue.set_attributes(Attributes=_jsonize_dictionary({
+        queue.set_attributes(Attributes=_jsonify_dictionary({
           'Policy': {'Version': '2012-10-17', 'Statement': policies},
         }))
 

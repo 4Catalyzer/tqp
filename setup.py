@@ -35,7 +35,6 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 3',
     ),
     keywords='pub sub pubsub flask',
@@ -43,6 +42,7 @@ setup(
     install_requires=(
         'boto3 >= 1',
     ),
+    python_requires='>=3',
     cmdclass={
         'clean': system('rm -rf build dist *.egg-info'),
         'package': system('python setup.py sdist bdist_wheel'),
