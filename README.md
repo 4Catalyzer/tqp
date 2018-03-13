@@ -22,6 +22,8 @@ poller = TopicQueuePoller('my_poller')
 def process_created_widget(item):
     widget_id = item['id']
     print(f'Widget {widget_id} was created')
+    
+poller.start()
 ```
 
 
