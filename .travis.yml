@@ -1,0 +1,17 @@
+sudo: false
+
+language: python
+python:
+  - "3.6"
+
+before_install:
+  - pip install -U pip
+install:
+  - pip install flake8 flake8-config-4catalyzer
+
+script:
+  - flake8 .
+
+branches:
+  only:
+    - master
