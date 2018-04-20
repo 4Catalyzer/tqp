@@ -67,7 +67,10 @@ class QueuePollerBase:
 
     def _handle_message(self, msg):
         try:
-            self.handle_message(msg)
+            body_raw = msg.body
+
+            self.logger.debug(body_raw)
+            self.handle_message(json.loads(body_raw))
 
             msg.delete()
             self.logger.debug('message successfully deleted')
@@ -75,14 +78,27 @@ class QueuePollerBase:
             # whatever the error is, log and move on
             self.handle_error(msg)
 
+    def handle_message(self, msg):
+        raise NotImplemented()
+
+    def run_handler(self, handler, body, *, parse_json, with_meta):
+        message = body.pop('Message')
+        if parse_json:
+            message = json.loads(message)
+
+        if with_meta:
+            handler(message, meta=self.get_meta(body))
+        else:
+            handler(message)
+
+    def get_meta(self, body):
+        return {'body': body}
+
     def handle_error(self, msg):
         self.logger.exception(
             "encountered an error when handling the following message: \n%s",
             msg.body,
         )
-
-    def handle_message(self, msg):
-        raise NotImplemented()
 
     def start(self):
         self.logger.debug('creating queue')
@@ -111,33 +127,57 @@ class QueuePollerBase:
 # -----------------------------------------------------------------------------
 
 
+class QueuePoller(QueuePollerBase):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.handler = None
+        self.parse_json = None
+        self.with_meta = None
+
+    def handle_message(self, body):
+        assert self.handler is not None, "no handler registered"
+
+        self.logger.info("handling new message")
+
+        self.run_handler(
+            self.handler,
+            body,
+            parse_json=self.parse_json,
+            with_meta=self.with_meta,
+        )
+
+    def handler(self, *, parse_json=True, with_meta=False):
+        def decorator(func):
+            assert self.handler is None, "handler already registered"
+
+            self.handler = func
+            self.parse_json = parse_json
+            self.with_meta = with_meta
+
+            return func
+
+        return decorator
+
+
 class TopicQueuePoller(QueuePollerBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
         self.handlers = {}
 
-    def handle_message(self, msg):
-        body = json.loads(msg.body)
+    def handle_message(self, body):
         topic = body['TopicArn'].split(':')[-1]
-        self.logger.info('%s: handling new message', topic)
-        self.logger.debug(msg.body)
-        message = body.pop('Message')
+        self.logger.info("%s: handling new message", topic)
 
         handler, parse_json, with_meta = self.handlers[topic]
 
-        if parse_json:
-            message = json.loads(message)
-
-        if with_meta:
-            handler(
-                message,
-                meta={
-                    'body': body,
-                    'topic': topic[len(self.prefix):],
-                },
-            )
-        else:
-            handler(message)
+        self.run_handler(
+            handler,
+            body,
+            parse_json=parse_json,
+            with_meta=with_meta,
+        )
 
     def handler(self, *topics, parse_json=True, with_meta=False):
         def decorator(func):
@@ -149,6 +189,7 @@ class TopicQueuePoller(QueuePollerBase):
                     )
 
                 self.handlers[topic_name] = func, parse_json, with_meta
+
             return func
 
         return decorator
