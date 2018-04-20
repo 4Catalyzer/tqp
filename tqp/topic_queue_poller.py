@@ -20,9 +20,9 @@ logger = logging.getLogger(name=__name__)
 def create_queue(queue_name, **kwargs):
     sqs = boto3.resource('sqs')
 
-    def _create_queue(name, attirbutes):
+    def _create_queue(name, attributes):
         return sqs.create_queue(
-            QueueName=name, Attributes=_jsonify_dictionary(attirbutes),
+            QueueName=name, Attributes=_jsonify_dictionary(attributes),
         )
 
     dead_letter_queue = _create_queue('{}-dead-letter'.format(queue_name), {
