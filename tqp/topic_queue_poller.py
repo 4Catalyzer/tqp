@@ -139,16 +139,27 @@ class TopicQueuePoller(QueuePollerBase):
         else:
             handler(message)
 
-    def handler(self, *topics, parse_json=True, with_meta=False):
+    def handler(
+        self,
+        *topics,
+        parse_json=True,
+        with_meta=False,
+        use_prefix=True
+    ):
         def decorator(func):
             for topic in topics:
-                topic_name = '{}{}'.format(self.prefix, topic)
+                if use_prefix:
+                    topic_name = '{}{}'.format(self.prefix, topic)
+                else:
+                    topic_name = topic
+
                 if topic_name in self.handlers:
                     raise ValueError(
                         'Topic {} already registered'.format(topic_name),
                     )
 
                 self.handlers[topic_name] = func, parse_json, with_meta
+
             return func
 
         return decorator
@@ -163,22 +174,22 @@ class TopicQueuePoller(QueuePollerBase):
         for topic_name in self.handlers.keys():
             topic = sns.create_topic(Name=topic_name)
             policies.append({
-              'Sid': 'sns',
-              'Effect': 'Allow',
-              'Principal': {'AWS': '*'},
-              'Action': 'SQS:SendMessage',
-              'Resource': queue_arn,
-              'Condition': {
-                'ArnEquals': {
-                  'aws:SourceArn': topic.arn,
+                'Sid': 'sns',
+                'Effect': 'Allow',
+                'Principal': {'AWS': '*'},
+                'Action': 'SQS:SendMessage',
+                'Resource': queue_arn,
+                'Condition': {
+                    'ArnEquals': {
+                        'aws:SourceArn': topic.arn,
+                    },
                 },
-              },
             })
 
             topic.subscribe(Protocol='sqs', Endpoint=queue_arn)
 
         queue.set_attributes(Attributes=_jsonify_dictionary({
-          'Policy': {'Version': '2012-10-17', 'Statement': policies},
+            'Policy': {'Version': '2012-10-17', 'Statement': policies},
         }))
 
         return queue
