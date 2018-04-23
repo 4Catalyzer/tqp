@@ -139,16 +139,27 @@ class TopicQueuePoller(QueuePollerBase):
         else:
             handler(message)
 
-    def handler(self, *topics, parse_json=True, with_meta=False):
+    def handler(
+        self,
+        *topics,
+        parse_json=True,
+        with_meta=False,
+        use_prefix=True
+    ):
         def decorator(func):
             for topic in topics:
-                topic_name = '{}{}'.format(self.prefix, topic)
+                if use_prefix:
+                    topic_name = '{}{}'.format(self.prefix, topic)
+                else:
+                    topic_name = topic
+
                 if topic_name in self.handlers:
                     raise ValueError(
                         'Topic {} already registered'.format(topic_name),
                     )
 
                 self.handlers[topic_name] = func, parse_json, with_meta
+
             return func
 
         return decorator
