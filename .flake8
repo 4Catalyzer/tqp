@@ -1,2 +1,3 @@
 [flake8]
+ignore = C816
 import-order-style = google
