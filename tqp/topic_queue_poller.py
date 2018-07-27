@@ -65,23 +65,27 @@ class QueuePollerBase:
     def ensure_queue(self):
         return create_queue(self.queue_name, **self.queue_attributes)
 
+    def get_message_payload(msg):
+        return None
+
     def _handle_message(self, msg):
+        payload = self.get_message_payload(msg)
         try:
-            self.handle_message(msg)
+            self.handle_message(msg, payload)
 
             msg.delete()
             self.logger.debug('message successfully deleted')
-        except Exception:
+        except Exception as e:
             # whatever the error is, log and move on
-            self.handle_error(msg)
+            self.handle_error(e, msg, payload)
 
-    def handle_error(self, msg):
+    def handle_error(self, exception, msg, payload):
         self.logger.exception(
             "encountered an error when handling the following message: \n%s",
             msg.body,
         )
 
-    def handle_message(self, msg):
+    def handle_message(self, msg, payload):
         raise NotImplemented()
 
     def start(self):
@@ -116,28 +120,35 @@ class TopicQueuePoller(QueuePollerBase):
         super().__init__(*args, **kwargs)
         self.handlers = {}
 
-    def handle_message(self, msg):
+    def get_message_payload(self, msg):
         body = json.loads(msg.body)
         topic = body['TopicArn'].split(':')[-1]
-        self.logger.info('%s: handling new message', topic)
-        self.logger.debug(msg.body)
         message = body.pop('Message')
-
         handler, parse_json, with_meta = self.handlers[topic]
-
         if parse_json:
             message = json.loads(message)
 
-        if with_meta:
-            handler(
-                message,
-                meta={
-                    'body': body,
-                    'topic': topic[len(self.prefix):],
-                },
-            )
-        else:
-            handler(message)
+        return {
+            'topic': topic,
+            'handler': handler,
+            'message': message,
+            'meta': {
+                'body': body,
+                'topic': topic[len(self.prefix):],
+            } if with_meta else None,
+        }
+
+    def handle_message(self, msg, payload):
+        topic = payload['topic']
+        handler = payload['handler']
+        meta = payload['meta']
+        message = payload['message']
+
+        self.logger.info('%s: handling new message', topic)
+        self.logger.debug(msg.body)
+
+        extra_call_kwargs = {'meta': meta} if meta is not None else {}
+        handler(message, **extra_call_kwargs)
 
     def handler(
         self,
