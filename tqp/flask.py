@@ -9,6 +9,6 @@ class FlaskTopicQueuePoller(TopicQueuePoller):
         self.app = app
         self.logger = app.logger
 
-    def handle_message(self, msg):
+    def handle_message(self, *args, **kwargs):
         with self.app.app_context():
-            super().handle_message(msg)
+            super().handle_message(*args, **kwargs)
