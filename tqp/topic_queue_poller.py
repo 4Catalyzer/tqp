@@ -2,10 +2,6 @@ import json
 import logging
 
 import boto3
-try:
-    import newrelic.agent
-except ImportError:
-    newrelic = None
 
 from .threading_utils import Interval
 
@@ -120,15 +116,9 @@ class QueuePollerBase:
 
 
 class TopicQueuePoller(QueuePollerBase):
-    def __init__(self, *args, enable_newrelic=newrelic is not None, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.handlers = {}
-        self.enable_newrelic = enable_newrelic
-
-        if enable_newrelic:
-            self._handle_message = newrelic.agent.background_task()(
-                self._handle_message,
-            )
 
     def parse_raw_message(self, msg):
         body = json.loads(msg.body)
@@ -154,30 +144,14 @@ class TopicQueuePoller(QueuePollerBase):
         meta = payload['meta']
         message = payload['message']
 
-        if self.enable_newrelic:
-            newrelic.agent.set_transaction_name(handler.__name__)
-
         self.logger.info('%s: handling new message', topic)
         self.logger.debug(raw_msg.body)
 
         extra_call_kwargs = {'meta': meta} if meta is not None else {}
         handler(message, **extra_call_kwargs)
 
-        self.send_newrelic_event(payload, success=True)
-
-    def send_newrelic_event(self, payload, success):
-        if not self.enable_newrelic:
-            return
-
-        newrelic.agent.record_custom_event('TqpEvents', {
-            'topic': payload['topic'],
-            'queue_name': self.queue_name,
-            'success': str(success),
-        })
-
     def handle_error(self, ex, raw_msg, payload):
         super().handle_error(ex, raw_msg, payload)
-        self.send_newrelic_event(payload, success=False)
 
     def handler(
         self,
