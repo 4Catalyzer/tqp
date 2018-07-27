@@ -1,7 +1,6 @@
-import json
-import logging
-
 import newrelic.agent
+
+from . import QueuePollerBase, TopicQueuePoller
 
 # -----------------------------------------------------------------------------
 
