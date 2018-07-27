@@ -77,9 +77,9 @@ class QueuePollerBase:
             self.logger.debug('message successfully deleted')
         except Exception as e:
             # whatever the error is, log and move on
-            self.handle_error(ex, msg, payload)
+            self.handle_error(e, msg, payload)
 
-    def handle_error(self, ex, msg, payload):
+    def handle_error(self, exception, msg, payload):
         self.logger.exception(
             "encountered an error when handling the following message: \n%s",
             msg.body,

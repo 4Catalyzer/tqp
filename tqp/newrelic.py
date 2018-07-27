@@ -27,8 +27,8 @@ def install():
             'success': str(success),
         })
 
-    def _hook_handle_error(self, ex, msg, payload):
-        base_handle_error(self, ex, msg, payload)
+    def _hook_handle_error(self, exception, msg, payload):
+        base_handle_error(self, exception, msg, payload)
         self.send_newrelic_event(payload, success=False)
 
     TopicQueuePoller.handle_message = _hook_handle_message
