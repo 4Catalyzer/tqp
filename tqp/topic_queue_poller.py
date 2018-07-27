@@ -65,27 +65,27 @@ class QueuePollerBase:
     def ensure_queue(self):
         return create_queue(self.queue_name, **self.queue_attributes)
 
-    def parse_raw_message(msg):
+    def get_message_payload(msg):
         return None
 
-    def _handle_message(self, raw_msg):
-        payload = self.parse_raw_message(raw_msg)
+    def _handle_message(self, msg):
+        payload = self.get_message_payload(msg)
         try:
-            self.handle_message(raw_msg, payload)
+            self.handle_message(msg, payload)
 
-            raw_msg.delete()
+            msg.delete()
             self.logger.debug('message successfully deleted')
-        except Exception as ex:
+        except Exception as e:
             # whatever the error is, log and move on
-            self.handle_error(ex, raw_msg, payload)
+            self.handle_error(ex, msg, payload)
 
-    def handle_error(self, ex, raw_msg, payload):
+    def handle_error(self, ex, msg, payload):
         self.logger.exception(
             "encountered an error when handling the following message: \n%s",
-            raw_msg.body,
+            msg.body,
         )
 
-    def handle_message(self, raw_msg, payload):
+    def handle_message(self, msg, payload):
         raise NotImplemented()
 
     def start(self):
@@ -120,7 +120,7 @@ class TopicQueuePoller(QueuePollerBase):
         super().__init__(*args, **kwargs)
         self.handlers = {}
 
-    def parse_raw_message(self, msg):
+    def get_message_payload(self, msg):
         body = json.loads(msg.body)
         topic = body['TopicArn'].split(':')[-1]
         message = body.pop('Message')
@@ -138,20 +138,17 @@ class TopicQueuePoller(QueuePollerBase):
             } if with_meta else None,
         }
 
-    def handle_message(self, raw_msg, payload):
+    def handle_message(self, msg, payload):
         topic = payload['topic']
         handler = payload['handler']
         meta = payload['meta']
         message = payload['message']
 
         self.logger.info('%s: handling new message', topic)
-        self.logger.debug(raw_msg.body)
+        self.logger.debug(msg.body)
 
         extra_call_kwargs = {'meta': meta} if meta is not None else {}
         handler(message, **extra_call_kwargs)
-
-    def handle_error(self, ex, raw_msg, payload):
-        super().handle_error(ex, raw_msg, payload)
 
     def handler(
         self,
