@@ -1,6 +1,6 @@
 import newrelic.agent
 
-from . import QueuePollerBase, TopicQueuePoller
+from .topic_queue_poller import QueuePollerBase, TopicQueuePoller
 
 # -----------------------------------------------------------------------------
 
