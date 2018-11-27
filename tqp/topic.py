@@ -6,7 +6,8 @@ import boto3
 
 
 class Topic:
-    def __init__(self, topic_name):
+    def __init__(self, topic_name, json_encoder=None):
+        self.json_encoder = json_encoder
         self.topic_name = topic_name
         self._topic = None
 
@@ -19,8 +20,8 @@ class Topic:
         self._topic = sns.create_topic(Name=self.topic_name)
         return self._topic
 
-    def publish(self, message, dump_json=True, **kwargs):
-        if dump_json:
-            message = json.dumps(message)
+    def publish(self, message, json_encoder=None, **kwargs):
+        if not isinstance(message, str):
+            message = json.dumps(message, cls=json_encoder or self.json_encoder)
 
         self.topic.publish(Message=message, **kwargs)
