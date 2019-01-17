@@ -86,7 +86,7 @@ class QueuePollerBase:
         )
 
     def handle_message(self, msg, payload):
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def start(self):
         self.logger.debug('creating queue')
@@ -152,24 +152,23 @@ class TopicQueuePoller(QueuePollerBase):
 
     def handler(
         self,
-        *topics,
+        topic,
         parse_json=True,
         with_meta=False,
-        use_prefix=True
+        use_prefix=True,
     ):
         def decorator(func):
-            for topic in topics:
-                if use_prefix:
-                    topic_name = '{}{}'.format(self.prefix, topic)
-                else:
-                    topic_name = topic
+            if use_prefix:
+                topic_name = '{}{}'.format(self.prefix, topic)
+            else:
+                topic_name = topic
 
-                if topic_name in self.handlers:
-                    raise ValueError(
-                        'Topic {} already registered'.format(topic_name),
-                    )
+            if topic_name in self.handlers:
+                raise ValueError(
+                    'Topic {} already registered'.format(topic_name),
+                )
 
-                self.handlers[topic_name] = func, parse_json, with_meta
+            self.handlers[topic_name] = func, parse_json, with_meta
 
             return func
 
