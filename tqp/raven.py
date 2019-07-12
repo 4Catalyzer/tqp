@@ -9,6 +9,6 @@ def install(client):
     def _hook_handle_error(self, exception, msg, payload):
         base_handle_error(self, exception, msg, payload)
 
-        client.captureException(extra={"msg": msg})
+        client.captureException(extra={"payload": payload})
 
     QueuePollerBase.handle_error = _hook_handle_error
