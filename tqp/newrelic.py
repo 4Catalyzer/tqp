@@ -11,7 +11,7 @@ def install():
     )
 
     base_handle_message = TopicQueuePoller.handle_message
-    base_handle_error = TopicQueuePoller.handle_error
+    base_handle_error = QueuePollerBase.handle_error
 
     def _hook_handle_message(self, msg, payload):
         newrelic.agent.set_transaction_name(payload['handler'].__name__)
@@ -33,4 +33,4 @@ def install():
 
     TopicQueuePoller.handle_message = _hook_handle_message
     TopicQueuePoller.send_newrelic_event = _hook_send_newrelic_event
-    TopicQueuePoller.handle_error = _hook_handle_error
+    QueuePollerBase.handle_error = _hook_handle_error
