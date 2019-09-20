@@ -1,3 +1,4 @@
+import flask
 from .topic_queue_poller import TopicQueuePoller
 
 # -----------------------------------------------------------------------------
@@ -9,6 +10,7 @@ class FlaskTopicQueuePoller(TopicQueuePoller):
         self.app = app
         self.logger = app.logger
 
-    def handle_message(self, *args, **kwargs):
+    def handle_message(self, msg, payload):
         with self.app.app_context():
-            super().handle_message(*args, **kwargs)
+            flask.g.tqp_payload = payload
+            super().handle_message(msg, payload)
