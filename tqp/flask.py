@@ -1,11 +1,12 @@
 from flask import _app_ctx_stack as context_stack
+import logging
 
 from .topic_queue_poller import TopicQueuePoller
 
 # -----------------------------------------------------------------------------
 
 UNDEFINED = object()
-CTX_PAYLOAD_KEY = 'payload'
+CTX_PAYLOAD_KEY = "payload"
 
 # -----------------------------------------------------------------------------
 
@@ -15,7 +16,7 @@ def _get_tqp_context():
     if not context:
         raise RuntimeError("working outside of app context")
 
-    if not hasattr(context, 'tqp'):
+    if not hasattr(context, "tqp"):
         context.tqp = {}
 
     return context.tqp
@@ -43,3 +44,23 @@ class FlaskTopicQueuePoller(TopicQueuePoller):
         with self.app.app_context():
             _get_tqp_context()[CTX_PAYLOAD_KEY] = payload
             super().handle_message(msg, payload)
+
+    def set_log_formatter(self):
+        class PollerFormatter(logging.Formatter):
+            def format(self, record, get_message_id: None):
+                record.topic_name = None
+                record.message_id = None
+
+                if flask.has_app_context():
+                    payload = get_ctx_payload()
+                    record.topic_name = payload["topic"]
+                    if get_message_id:
+                        record.message_id = get_message_id(payload)
+
+                return super().format(record)
+
+        flask.logging.default_handler.setFormatter(
+            PollerFormatter(
+                "[%(asctime)s] %(levelname)s in %(module)s %(topic_name)s(%(message_id)s): %(message)s"
+            )
+        )
