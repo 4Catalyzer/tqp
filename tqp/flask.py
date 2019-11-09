@@ -1,5 +1,7 @@
-from flask import _app_ctx_stack as context_stack
 import logging
+
+import flask
+from flask import _app_ctx_stack as context_stack
 
 from .topic_queue_poller import TopicQueuePoller
 
@@ -61,6 +63,6 @@ class FlaskTopicQueuePoller(TopicQueuePoller):
 
         flask.logging.default_handler.setFormatter(
             PollerFormatter(
-                "[%(asctime)s] %(levelname)s in %(module)s %(topic_name)s(%(message_id)s): %(message)s"
-            )
+                "[%(asctime)s] %(levelname)s in %(module)s %(topic_name)s(%(message_id)s): %(message)s",  # noqa E501
+            ),
         )
