@@ -47,9 +47,9 @@ class FlaskTopicQueuePoller(TopicQueuePoller):
             _get_tqp_context()[CTX_PAYLOAD_KEY] = payload
             super().handle_message(msg, payload)
 
-    def set_log_formatter(self):
+    def set_log_formatter(self, get_message_id: None):
         class PollerFormatter(logging.Formatter):
-            def format(self, record, get_message_id: None):
+            def format(self, record):
                 record.topic_name = None
                 record.message_id = None
 
