@@ -25,7 +25,7 @@ def system(command):
 
 setup(
     name="tqp",
-    version="0.2.4",
+    version="0.2.5",
     description="An opinionated library for pub/sub over SQS and SNS",
     url="https://github.com/4Catalyzer/tqp",
     author="Giacomo Tagliabue",
