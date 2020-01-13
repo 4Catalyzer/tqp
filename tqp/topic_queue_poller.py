@@ -83,6 +83,7 @@ class QueuePollerBase:
         self.logger.exception(
             "encountered an error when handling the following message: \n%s",
             msg.body,
+            extra={"payload": payload},
         )
 
     def handle_message(self, msg, payload):
