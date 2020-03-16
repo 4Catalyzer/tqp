@@ -15,7 +15,7 @@ class Topic:
         if self._topic is not None:
             return self._topic
 
-        sns = boto3.resource('sns')
+        sns = boto3.resource("sns")
         self._topic = sns.create_topic(Name=self.topic_name)
         return self._topic
 
