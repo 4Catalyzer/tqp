@@ -35,7 +35,7 @@ A Flask binding is also provided:
 poller = FlaskTopicQueuePoller('my_poller', app=flask_app)
 ```
 
-When using the flask poller you can also specify how to format the logs:
+When using the Flask poller, you can also specify how to format the logs:
 
 ```py
 # the argument (optional) is a function that takes the message payload as input and return a message identifier
