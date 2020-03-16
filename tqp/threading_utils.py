@@ -1,5 +1,7 @@
 from threading import Event, Thread
 
+# -----------------------------------------------------------------------------
+
 
 class Interval(Thread):
     """Run a function periodically.
