@@ -40,7 +40,7 @@ setup(
     ),
     keywords="pub sub pubsub flask",
     packages=find_packages(),
-    install_requires=("boto3 >= 1","flask"),
+    install_requires=("boto3 >= 1", "flask"),
     python_requires=">=3",
     cmdclass={
         "clean": system("rm -rf build dist *.egg-info"),
