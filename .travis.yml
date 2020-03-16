@@ -1,16 +1,16 @@
-sudo: false
+dist: xenial
 
 language: python
 python:
-  - "3.6"
+  - "3.8"
 
 before_install:
   - pip install -U pip
 install:
-  - pip install flake8 flake8-config-4catalyzer
+  - pip install pre-commit
 
 script:
-  - flake8 .
+  - pre-commit run --all-files
 
 branches:
   only:
