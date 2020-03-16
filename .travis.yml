@@ -1,17 +1,36 @@
-sudo: false
+dist: xenial
 
 language: python
-python:
-  - "3.6"
+
+jobs:
+  include:
+    - { python: "3.8" }
+    - { python: "3.7" }
+    - { python: "3.6" }
+
+    - stage: PyPI Release
+      if: tag IS present
+      python: "3.8"
+      env: []
+      before_install: skip
+      install: skip
+      script: skip
+      deploy:
+        provider: pypi
+        user: "__token__"
+        password:
+          secure: "NTpiWR2gWlHY2v3HH/UgSIvvzhZdcTsJzinMcCphWZ9k4Ksx7AMOH/ZtMLbBng6BtynnqpQY5P55BEeWlOr/2/prkC1Sw2+qAeoeiTP8RRHYcNqxqQdhG84VaSXZsEK1bu6/Kn5f57EUWXZC9ASnYt7oCXrKUwFhvqnrQsUPhX8VXeArCDy8VPqGdxv1N/jj95TGR6go2La95xz9e9GsG6bseByjPPPRjOED1IEqDdVPWOhzpoySD9ta2/aAEIYoDE1usOZ3I2cuaIH7SAzOTlf7B+P4RvvfIK17PFrlxzK4Ra/+wAkykaPGkh9RKY6JfP8K9/4NfCNuqBJK0yd74rbdQ5SuEN190hDwaqpQ0FKlQz527jgJY0BbDGVYaiP6Hhk1yS9irpkD0khDSwLsfk/oaf5QJds9YlxG4hQzowyXxoGqQIbEGNUTjukI1qfL+pBDEgzlmERY3+zyFx6BOjNplXaB6nRVBjeb0nga/ft+aklFGOp+OIYta5vJ/2yBIAoLwIJ7er0+GVNMr7EE8Eb/0rlBTlx0gBSIc/qq9fLZEbpt4jaxYey5MgvtgYBd4C9djjIzfNGb3MDaY2wmmcfYJ/vMgYemYBUNetcRcmJEy11byDNaS6LWhBxzssSMXMAuZGMUjGq7n+vsiq4G3zzBwPoj+C8wC2aiart66WU="
+        distributions: sdist bdist_wheel
 
 before_install:
   - pip install -U pip
 install:
-  - pip install flake8 flake8-config-4catalyzer
+  - pip install pre-commit
 
 script:
-  - flake8 .
+  - pre-commit run --all-files
 
 branches:
   only:
     - master
+    - /^v\d+\.\d+\.\d+(-\S+)?$/

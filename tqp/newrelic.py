@@ -14,18 +14,21 @@ def install():
     base_handle_error = QueuePollerBase.handle_error
 
     def _hook_handle_message(self, msg, payload):
-        newrelic.agent.set_transaction_name(payload['handler'].__name__)
+        newrelic.agent.set_transaction_name(payload["handler"].__name__)
 
         base_handle_message(self, msg, payload)
 
         self.send_newrelic_event(payload, success=True)
 
     def _hook_send_newrelic_event(self, payload, success):
-        newrelic.agent.record_custom_event('TqpEvents', {
-            'topic': payload['topic'],
-            'queue_name': self.queue_name,
-            'success': str(success),
-        })
+        newrelic.agent.record_custom_event(
+            "TqpEvents",
+            {
+                "topic": payload["topic"],
+                "queue_name": self.queue_name,
+                "success": str(success),
+            },
+        )
 
     def _hook_handle_error(self, exception, msg, payload):
         base_handle_error(self, exception, msg, payload)
