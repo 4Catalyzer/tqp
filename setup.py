@@ -9,7 +9,7 @@ setup(
     author_email="giacomo@gmail.com",
     license="MIT",
     python_requires=">=3.6",
-    classifiers=(
+    classifiers=[
         "Development Status :: 3 - Alpha",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
@@ -19,7 +19,7 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3 :: Only",
-    ),
+    ],
     keywords="pub sub pubsub flask",
     packages=find_packages(),
     install_requires=("boto3",),
