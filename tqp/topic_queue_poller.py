@@ -144,7 +144,7 @@ class TopicQueuePoller(QueuePollerBase):
             "topic": topic,
             "handler": handler,
             "message": message,
-            "attribute": attributes,
+            "attributes": attributes,
             "meta": (
                 {"body": body, "topic": topic[len(self.prefix) :],}
                 if with_meta
