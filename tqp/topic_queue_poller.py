@@ -144,13 +144,12 @@ class TopicQueuePoller(QueuePollerBase):
             "topic": topic,
             "handler": handler,
             "message": message,
-            "meta": {
-                "body": body,
-                "topic": topic[len(self.prefix) :],
-                "attributes": attributes,
-            }
-            if with_meta
-            else None,
+            "attribute": attributes,
+            "meta": (
+                {"body": body, "topic": topic[len(self.prefix) :],}
+                if with_meta
+                else None
+            ),
         }
 
     def handle_message(self, msg, payload):
