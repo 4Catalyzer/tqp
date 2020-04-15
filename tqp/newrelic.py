@@ -27,6 +27,7 @@ def install():
                 "topic": payload["topic"],
                 "queue_name": self.queue_name,
                 "success": str(success),
+                "attributes": payload["attributes"],
             },
         )
 
