@@ -138,12 +138,13 @@ class TopicQueuePoller(QueuePollerBase):
         handler, parse_json, with_meta = self.handlers[topic]
         if parse_json:
             message = json.loads(message)
+        attributes = msg.Attributes
 
         return {
             "topic": topic,
             "handler": handler,
             "message": message,
-            "meta": {"body": body, "topic": topic[len(self.prefix) :],}
+            "meta": {"body": body, "topic": topic[len(self.prefix) :], "attributes": attributes}
             if with_meta
             else None,
         }
