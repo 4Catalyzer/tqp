@@ -17,17 +17,23 @@ logger = logging.getLogger(name=__name__)
 # -----------------------------------------------------------------------------
 
 
-def create_queue(queue_name, **kwargs):
+def create_queue(queue_name, tags=None, **kwargs):
+    tags = tags or {}
     sqs = boto3.resource("sqs")
 
-    def _create_queue(name, attributes):
+    def _create_queue(name, attributes, extra_tags=None):
+        extra_tags = extra_tags or {}
+
         return sqs.create_queue(
-            QueueName=name, Attributes=_jsonify_dictionary(attributes),
+            QueueName=name,
+            Attributes=_jsonify_dictionary(attributes),
+            tags={"TQP": "true", **extra_tags, **tags},
         )
 
     dead_letter_queue = _create_queue(
         f"{queue_name}-dead-letter",
         {"MessageRetentionPeriod": 1209600,},  # maximum (14 days)
+        {"DLQ": "true"},
     )
     dead_letter_queue_arn = dead_letter_queue.attributes["QueueArn"]
 
@@ -51,10 +57,13 @@ def create_queue(queue_name, **kwargs):
 class QueuePollerBase:
     logger = logger
 
-    def __init__(self, queue_name, prefix=None, **kwargs):
+    def __init__(self, queue_name, prefix=None, tags=None, **kwargs):
         self.prefix = f"{prefix}--" if prefix else ""
         self.queue_name = f"{self.prefix}{queue_name}"
         self.queue_attributes = kwargs
+        self.tags = tags or {}
+        if prefix:
+            self.tags["prefix"] = prefix
 
     def extend_message_visibility_timeout(self, queue, messages, timeout):
         # this is safe to run on already deleted messages, because
@@ -72,7 +81,9 @@ class QueuePollerBase:
         )
 
     def ensure_queue(self):
-        return create_queue(self.queue_name, **self.queue_attributes)
+        return create_queue(
+            self.queue_name, tags=self.tags, **self.queue_attributes
+        )
 
     def get_message_payload(msg):
         return None
