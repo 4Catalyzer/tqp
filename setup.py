@@ -23,5 +23,7 @@ setup(
     keywords="pub sub pubsub flask",
     packages=find_packages(),
     install_requires=("boto3",),
-    extras_require={"dev": ["pytest", "fourmat~=0.4.3", "pre-commit", "moto"]},
+    extras_require={
+        "dev": ["pytest", "fourmat~=0.4.3", "pre-commit", "moto", "boto3"]
+    },
 )
