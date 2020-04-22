@@ -26,7 +26,7 @@ def create_queue(queue_name, *, tags, **kwargs):
         return sqs.create_queue(
             QueueName=name,
             Attributes=_jsonify_dictionary(attributes),
-            tags={"tqp": "true", **tags, **extra_tags},
+            tags={"tqp": "true", "dlq": "false", **tags, **extra_tags},
         )
 
     dead_letter_queue = _create_queue(

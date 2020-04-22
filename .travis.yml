@@ -1,12 +1,15 @@
-dist: xenial
-
 language: python
+dist: xenial
+cache: pip
+install: travis_retry pip install -U tox
+script: tox
 
 jobs:
   include:
-    - python: "3.8"
-    - python: "3.7"
-    - python: "3.6"
+    - { python: '3.6', env: TOXENV=lint }
+    - { python: '3.6', env: TOXENV=py36 }
+    - { python: '3.7', env: TOXENV=py37 }
+    - { python: '3.8', env: TOXENV=py38 }
 
     - stage: Release
       if: tag IS present
@@ -23,16 +26,3 @@ jobs:
         on:
           tags: true
         distributions: sdist bdist_wheel
-
-before_install:
-  - pip install -U pip
-install:
-  - pip install pre-commit
-
-script:
-  - pre-commit run --all-files
-
-branches:
-  only:
-    - master
-    - /^v\d+\.\d+\.\d+(-\S+)?$/
