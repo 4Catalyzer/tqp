@@ -17,27 +17,43 @@ logger = logging.getLogger(name=__name__)
 # -----------------------------------------------------------------------------
 
 
-def create_queue(queue_name, *, tags, **kwargs):
-    sqs = boto3.resource("sqs")
+def _create_queue_raw(name, attributes, *, tags):
+    sqs_client = boto3.client("sqs")
+    sqs_resource = boto3.resource("sqs")
 
-    def _create_queue(name, attributes, extra_tags=None):
-        extra_tags = extra_tags or {}
+    attributes = _jsonify_dictionary(attributes)
+    tags = {"tqp": "true", **tags}
 
-        return sqs.create_queue(
-            QueueName=name,
-            Attributes=_jsonify_dictionary(attributes),
-            tags={"tqp": "true", "dlq": "false", **tags, **extra_tags},
+    def _create_queue():
+        return sqs_resource.create_queue(
+            QueueName=name, Attributes=attributes, tags=tags,
         )
 
-    dead_letter_queue = _create_queue(
+    try:
+        return _create_queue()
+    except sqs_client.exceptions.QueueNameExists:
+        queue_url = sqs_resource.get_queue_by_name(QueueName=name).url
+        existing_tags = sqs_client.list_queue_tags(QueueUrl=queue_url)["Tags"]
+        tags_to_remove = list(set(existing_tags.keys()) - set(tags.keys()))
+
+        sqs_client.tag_queue(QueueUrl=queue_url, Tags=tags)
+        if tags_to_remove:
+            sqs_client.untag_queue(QueueUrl=queue_url, TagKeys=tags_to_remove)
+
+        # try again creating to make sure everything matches
+        return _create_queue()
+
+
+def create_queue(queue_name, *, tags, **kwargs):
+    dead_letter_queue = _create_queue_raw(
         f"{queue_name}-dead-letter",
         {"MessageRetentionPeriod": 1209600,},  # maximum (14 days)
-        {"dlq": "true"},
+        tags={"dlq": "true", **tags},
     )
     dead_letter_queue_arn = dead_letter_queue.attributes["QueueArn"]
 
     redrive_policy_kwargs = kwargs.pop("RedrivePolicy", {})
-    return _create_queue(
+    return _create_queue_raw(
         queue_name,
         {
             "RedrivePolicy": {
@@ -47,6 +63,7 @@ def create_queue(queue_name, *, tags, **kwargs):
             },
             **kwargs,
         },
+        tags={"dlq": "false", **tags},
     )
 
 
