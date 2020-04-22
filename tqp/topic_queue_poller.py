@@ -17,8 +17,7 @@ logger = logging.getLogger(name=__name__)
 # -----------------------------------------------------------------------------
 
 
-def create_queue(queue_name, tags=None, **kwargs):
-    tags = tags or {}
+def create_queue(queue_name, *, tags, **kwargs):
     sqs = boto3.resource("sqs")
 
     def _create_queue(name, attributes, extra_tags=None):
