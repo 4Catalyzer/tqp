@@ -7,6 +7,8 @@ from moto.backends import sqs_backends
 
 from tqp.topic_queue_poller import TopicQueuePoller, create_queue
 
+# -----------------------------------------------------------------------------
+
 
 @mock_sqs
 def test_create_queue():
