@@ -32,22 +32,24 @@ def _create_queue_raw(name, attributes, *, tags):
     try:
         return _create_queue()
     except sqs_client.exceptions.QueueNameExists:
-        queue_url = sqs_resource.get_queue_by_name(QueueName=name).url
-        existing_tags = sqs_client.list_queue_tags(QueueUrl=queue_url)["Tags"]
+        queue_url = sqs_client.get_queue_url(QueueName=name)["QueueUrl"]
+        existing_tags = sqs_client.list_queue_tags(QueueUrl=queue_url).get(
+            "Tags", {}
+        )
         tags_to_remove = list(set(existing_tags.keys()) - set(tags.keys()))
 
         sqs_client.tag_queue(QueueUrl=queue_url, Tags=tags)
         if tags_to_remove:
             sqs_client.untag_queue(QueueUrl=queue_url, TagKeys=tags_to_remove)
 
-        # try again creating to make sure everything matches
+        # Run create again to make sure everything matches.
         return _create_queue()
 
 
 def create_queue(queue_name, *, tags, **kwargs):
     dead_letter_queue = _create_queue_raw(
         f"{queue_name}-dead-letter",
-        {"MessageRetentionPeriod": 1209600,},  # maximum (14 days)
+        {"MessageRetentionPeriod": 1209600},  # maximum (14 days)
         tags={"dlq": "true", **tags},
     )
     dead_letter_queue_arn = dead_letter_queue.attributes["QueueArn"]
