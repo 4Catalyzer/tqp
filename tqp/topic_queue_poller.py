@@ -80,6 +80,7 @@ class QueuePollerBase:
         self.queue_name = f"{self.prefix}{queue_name}"
         self.queue_attributes = kwargs
         self.tags = tags or {}
+        self.queue = None
         if prefix:
             self.tags["prefix"] = prefix
 
@@ -99,9 +100,10 @@ class QueuePollerBase:
         )
 
     def ensure_queue(self):
-        return create_queue(
+        self.queue = create_queue(
             self.queue_name, tags=self.tags, **self.queue_attributes
         )
+        return self.queue
 
     def get_message_payload(msg):
         return None
