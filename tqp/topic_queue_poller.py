@@ -219,26 +219,31 @@ class TopicQueuePoller(QueuePollerBase):
         queue_arn = queue.attributes["QueueArn"]
 
         sns = boto3.resource("sns")
-        policies = []
+        topic_arns = []
 
         for topic_name in self.handlers.keys():
             topic = sns.create_topic(Name=topic_name)
-            policies.append(
-                {
-                    "Sid": "sns",
-                    "Effect": "Allow",
-                    "Principal": {"AWS": "*"},
-                    "Action": "SQS:SendMessage",
-                    "Resource": queue_arn,
-                    "Condition": {"ArnEquals": {"aws:SourceArn": topic.arn,},},
-                }
-            )
-
             topic.subscribe(Protocol="sqs", Endpoint=queue_arn)
+
+            topic_arns.append(topic.arn)
 
         queue.set_attributes(
             Attributes=_jsonify_dictionary(
-                {"Policy": {"Version": "2012-10-17", "Statement": policies},}
+                {
+                    "Policy": {
+                        "Version": "2012-10-17",
+                        "Statement": {
+                            "Sid": "sns",
+                            "Effect": "Allow",
+                            "Principal": {"AWS": "*"},
+                            "Action": "SQS:SendMessage",
+                            "Resource": queue_arn,
+                            "Condition": {
+                                "ArnEquals": {"aws:SourceArn": topic_arns}
+                            },
+                        },
+                    },
+                }
             )
         )
 
