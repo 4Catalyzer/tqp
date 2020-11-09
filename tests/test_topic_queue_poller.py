@@ -3,11 +3,13 @@ from threading import Thread
 
 import boto3
 from moto import mock_sns, mock_sqs
-from moto.backends import sqs_backends
+from moto.server import backends
 
 from tqp.topic_queue_poller import TopicQueuePoller, create_queue
 
 # -----------------------------------------------------------------------------
+
+sqs_backends = backends.get_backend("sqs")
 
 
 @mock_sqs
