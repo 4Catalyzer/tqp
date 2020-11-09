@@ -3,11 +3,13 @@ from threading import Thread
 
 import boto3
 from moto import mock_sns, mock_sqs
-from moto.backends import sqs_backends
+from moto.server import backends
 
 from tqp.topic_queue_poller import TopicQueuePoller, create_queue
 
 # -----------------------------------------------------------------------------
+
+sqs_backends = backends.get_backend("sqs")
 
 
 @mock_sqs
@@ -41,7 +43,7 @@ def test_tqp():
     t.start()
 
     # making sure poller is polling
-    time.sleep(0.05)
+    time.sleep(0.1)
 
     boto3.client("sns").publish(
         TopicArn="arn:aws:sns:us-east-1:123456789012:test--my_event",

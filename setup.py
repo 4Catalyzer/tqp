@@ -24,6 +24,12 @@ setup(
     packages=find_packages(),
     install_requires=("boto3",),
     extras_require={
-        "dev": ["pytest", "fourmat~=0.4.3", "pre-commit", "moto", "boto3"]
+        "dev": [
+            "pytest",
+            "fourmat~=0.4.3",
+            "pre-commit",
+            "moto[server]",
+            "boto3",
+        ]
     },
 )
