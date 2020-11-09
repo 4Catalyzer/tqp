@@ -1,7 +1,7 @@
 from .topic_queue_poller import TopicQueuePoller
 
 
-def install(client):
+def install():
     from ddtrace import tracer
 
     base_handle_message = TopicQueuePoller.handle_message
