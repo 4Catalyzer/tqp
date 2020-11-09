@@ -43,7 +43,7 @@ def test_tqp():
     t.start()
 
     # making sure poller is polling
-    time.sleep(0.05)
+    time.sleep(0.1)
 
     boto3.client("sns").publish(
         TopicArn="arn:aws:sns:us-east-1:123456789012:test--my_event",
