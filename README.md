@@ -22,10 +22,29 @@ poller = TopicQueuePoller('my_poller')
 def process_created_widget(item):
     widget_id = item['id']
     print(f'Widget {widget_id} was created')
-    
+
 poller.start()
 ```
 
+### S3 notifications
+
+It is also possible to poll for s3 object notifications
+
+```py
+@poller.s3_handler('my-bucket-name')
+def process_file_created(msg):
+    print(msg)
+    # {
+    #     'event_name': 'ObjectCreated:Put',
+    #     'bucket_name': 'bespin-dev-consular21d51f71-11lpitfowdylc',
+    #     'object': {
+    #         'key': 'genome.fasta',
+    #         'size': 124,
+    #         'eTag': '5d9d04cd0b9d3b314d9bd622da06ab74',
+    #         'sequencer': '005FAD55883A198E97'
+    #     },
+    # }
+```
 
 ### Flask
 

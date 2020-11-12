@@ -3,6 +3,7 @@ import logging
 
 import boto3
 
+from .exceptions import InvalidMessageError
 from .threading_utils import Interval
 
 # -----------------------------------------------------------------------------
@@ -13,6 +14,11 @@ def _jsonify_dictionary(dictionary):
 
 
 logger = logging.getLogger(name=__name__)
+
+
+def noop(*args, **kwargs):
+    pass
+
 
 # -----------------------------------------------------------------------------
 
@@ -161,27 +167,73 @@ class TopicQueuePoller(QueuePollerBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.handlers = {}
+        self.s3_handlers = {}
 
-    def get_message_payload(self, msg):
-        body = json.loads(msg.body)
+    def get_sns_payload(self, body):
+        if "TopicArn" not in body:
+            return None
+
         topic = body["TopicArn"].split(":")[-1]
         message = body.pop("Message")
         handler, parse_json, with_meta = self.handlers[topic]
         if parse_json:
             message = json.loads(message)
-        attributes = msg.attributes
 
         return {
             "topic": topic,
             "handler": handler,
             "message": message,
-            "attributes": attributes,
             "meta": (
                 {"body": body, "topic": topic[len(self.prefix) :],}
                 if with_meta
                 else None
             ),
         }
+
+    def get_s3_payload(self, body):
+        if body.get("Event") == "s3:TestEvent":
+            return {
+                "topic": "s3-test-event",
+                "handler": noop,
+                "message": None,
+                "meta": None,
+            }
+
+        if (
+            "Records" not in body
+            or len(body["Records"]) != 1
+            or body["Records"][0]["eventSource"] != "aws:s3"
+        ):
+            return None
+
+        record = body["Records"][0]
+
+        bucket_name = record["s3"]["bucket"]["name"]
+        event_name = record["eventName"]
+        topic = f"{self.prefix}{bucket_name}-{event_name}"
+        handler = self.s3_handlers[bucket_name]
+        message = {
+            "event_name": event_name,
+            "bucket_name": bucket_name,
+            "object": record["s3"]["object"],
+        }
+
+        return {
+            "topic": topic,
+            "handler": handler,
+            "message": message,
+            "meta": None,
+        }
+
+    def get_message_payload(self, msg):
+        body = json.loads(msg.body)
+
+        for matcher in (self.get_sns_payload, self.get_s3_payload):
+            payload = matcher(body)
+            if payload is not None:
+                return payload
+
+        raise InvalidMessageError(f"message could not be parsed: {body}")
 
     def handle_message(self, msg, payload):
         topic = payload["topic"]
@@ -214,11 +266,21 @@ class TopicQueuePoller(QueuePollerBase):
 
         return decorator
 
+    def s3_handler(self, bucket_name):
+        def decorator(func):
+            if bucket_name in self.s3_handlers:
+                raise ValueError(f"Bucket {bucket_name} already registered")
+
+            self.s3_handlers[bucket_name] = func
+
+        return decorator
+
     def ensure_queue(self):
         queue = super().ensure_queue()
         queue_arn = queue.attributes["QueueArn"]
 
         sns = boto3.resource("sns")
+        s3_client = boto3.client("s3")
         topic_arns = []
 
         for topic_name in self.handlers.keys():
@@ -227,24 +289,50 @@ class TopicQueuePoller(QueuePollerBase):
 
             topic_arns.append(topic.arn)
 
-        queue.set_attributes(
-            Attributes=_jsonify_dictionary(
+        bucket_names = self.s3_handlers.keys()
+        bucket_arns = [f"arn:aws:s3:::{bucket}" for bucket in bucket_names]
+
+        statement = [
+            {
+                "Sid": "sns",
+                "Effect": "Allow",
+                "Principal": {"AWS": "*"},
+                "Action": "SQS:SendMessage",
+                "Resource": queue_arn,
+                "Condition": {"ArnEquals": {"aws:SourceArn": topic_arns}},
+            }
+        ]
+
+        if bucket_arns:
+            statement.append(
                 {
-                    "Policy": {
-                        "Version": "2012-10-17",
-                        "Statement": {
-                            "Sid": "sns",
-                            "Effect": "Allow",
-                            "Principal": {"AWS": "*"},
-                            "Action": "SQS:SendMessage",
-                            "Resource": queue_arn,
-                            "Condition": {
-                                "ArnEquals": {"aws:SourceArn": topic_arns}
-                            },
-                        },
-                    },
+                    "Sid": "s3",
+                    "Effect": "Allow",
+                    "Principal": {"AWS": "*"},
+                    "Action": "SQS:SendMessage",
+                    "Resource": queue_arn,
+                    "Condition": {"ArnEquals": {"aws:SourceArn": bucket_arns}},
                 }
             )
+
+        queue.set_attributes(
+            Attributes=_jsonify_dictionary(
+                {"Policy": {"Version": "2012-10-17", "Statement": statement,},}
+            )
         )
+
+        for bucket in bucket_names:
+            s3_client.put_bucket_notification_configuration(
+                Bucket=bucket,
+                NotificationConfiguration={
+                    "QueueConfigurations": [
+                        {
+                            "Id": "tqp-subscription",
+                            "QueueArn": queue_arn,
+                            "Events": ["s3:ObjectCreated:*"],
+                        },
+                    ],
+                },
+            )
 
         return queue
