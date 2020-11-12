@@ -167,7 +167,7 @@ class TopicQueuePoller(QueuePollerBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.handlers = {}
-        self.bucket_handlers = {}
+        self.s3_handlers = {}
 
     def get_sns_payload(self, body):
         if "TopicArn" not in body:
@@ -211,7 +211,7 @@ class TopicQueuePoller(QueuePollerBase):
         bucket_name = record["s3"]["bucket"]["name"]
         event_name = record["eventName"]
         topic = f"{self.prefix}{bucket_name}-{event_name}"
-        handler = self.bucket_handlers[bucket_name]
+        handler = self.s3_handlers[bucket_name]
         message = {
             "event_name": event_name,
             "bucket_name": bucket_name,
@@ -266,12 +266,12 @@ class TopicQueuePoller(QueuePollerBase):
 
         return decorator
 
-    def sqs_handler(self, bucket_name):
+    def s3_handler(self, bucket_name):
         def decorator(func):
-            if bucket_name in self.bucket_handlers:
+            if bucket_name in self.s3_handlers:
                 raise ValueError(f"Bucket {bucket_name} already registered")
 
-            self.bucket_handlers[bucket_name] = func
+            self.s3_handlers[bucket_name] = func
 
         return decorator
 
@@ -289,7 +289,7 @@ class TopicQueuePoller(QueuePollerBase):
 
             topic_arns.append(topic.arn)
 
-        bucket_names = self.bucket_handlers.keys()
+        bucket_names = self.s3_handlers.keys()
         bucket_arns = [f"arn:aws:s3:::{bucket}" for bucket in bucket_names]
 
         statement = [
