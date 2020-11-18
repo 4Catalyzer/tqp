@@ -169,7 +169,8 @@ class TopicQueuePoller(QueuePollerBase):
         self.handlers = {}
         self.s3_handlers = {}
 
-    def get_sns_payload(self, body):
+    def get_sns_payload(self, msg):
+        body = json.loads(msg.body)
         if "TopicArn" not in body:
             return None
 
@@ -183,6 +184,7 @@ class TopicQueuePoller(QueuePollerBase):
             "topic": topic,
             "handler": handler,
             "message": message,
+            "attributes": msg.attributes,
             "meta": (
                 {"body": body, "topic": topic[len(self.prefix) :],}
                 if with_meta
@@ -190,7 +192,8 @@ class TopicQueuePoller(QueuePollerBase):
             ),
         }
 
-    def get_s3_payload(self, body):
+    def get_s3_payload(self, msg):
+        body = json.loads(msg.body)
         if body.get("Event") == "s3:TestEvent":
             return {
                 "topic": "s3-test-event",
@@ -226,14 +229,12 @@ class TopicQueuePoller(QueuePollerBase):
         }
 
     def get_message_payload(self, msg):
-        body = json.loads(msg.body)
-
         for matcher in (self.get_sns_payload, self.get_s3_payload):
-            payload = matcher(body)
+            payload = matcher(msg)
             if payload is not None:
                 return payload
 
-        raise InvalidMessageError(f"message could not be parsed: {body}")
+        raise InvalidMessageError(f"message could not be parsed: {msg}")
 
     def handle_message(self, msg, payload):
         topic = payload["topic"]
