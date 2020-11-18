@@ -231,7 +231,7 @@ class TopicQueuePoller(QueuePollerBase):
         for matcher in (self.get_sns_payload, self.get_s3_payload):
             payload = matcher(body)
             if payload is not None:
-                return payload
+                return {"attributes": msg.attributes, **payload}
 
         raise InvalidMessageError(f"message could not be parsed: {body}")
 
