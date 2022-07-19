@@ -60,3 +60,10 @@ When using the Flask poller, you can also specify how to format the logs:
 # the argument (optional) is a function that takes the message payload as input and return a message identifier
 poller.set_log_formatter(lambda payload: payload["message"].get("id", "<NO ID>"))
 ```
+
+### Logstash
+
+https://github.com/jquense/logstash-input-tqp
+
+Provides a TQP poller as an LogStash input plugin.
+
