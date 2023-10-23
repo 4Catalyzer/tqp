@@ -1,9 +1,11 @@
 import logging
 
 import flask
-from flask import _app_ctx_stack as context_stack
+
+from flask import g
 
 from .topic_queue_poller import TopicQueuePoller
+
 
 # -----------------------------------------------------------------------------
 
@@ -14,7 +16,7 @@ CTX_PAYLOAD_KEY = "payload"
 
 
 def _get_tqp_context():
-    context = context_stack.top
+    context = g
     if not context:
         raise RuntimeError("working outside of app context")
 
