@@ -1,36 +1,44 @@
+import boto3
 import json
+import moto
 import time
+from moto import mock_aws
 from threading import Thread
 from unittest.mock import Mock
-
-import boto3
-from moto import mock_s3, mock_sns, mock_sqs
-from moto.server import backends
 
 from tqp.topic_queue_poller import TopicQueuePoller, create_queue
 
 # -----------------------------------------------------------------------------
 
-sqs_backends = backends.get_backend("sqs")
 
-
-@mock_sqs
+@mock_aws
 def test_create_queue():
     create_queue("foo", tags={"my": "tag"})
 
-    queue = sqs_backends["us-east-1"].queues["foo"]
-    dlq = sqs_backends["us-east-1"].queues["foo-dead-letter"]
+    sqs_client = boto3.client("sqs", region_name="us-east-1")
+    queue = sqs_client.create_queue(QueueName="foo")
+    dlq = sqs_client.create_queue(QueueName="foo-dead-letter")
 
-    assert queue.tags == {"tqp": "true", "dlq": "false", "my": "tag"}
-    assert dlq.tags == {"tqp": "true", "dlq": "true", "my": "tag"}
-    assert queue.redrive_policy == {
+    assert sqs_client.list_queue_tags(QueueUrl=queue["QueueUrl"])["Tags"] == {
+        "tqp": "true",
+        "dlq": "false",
+        "my": "tag",
+    }
+    assert sqs_client.list_queue_tags(QueueUrl=dlq["QueueUrl"])["Tags"] == {
+        "tqp": "true",
+        "dlq": "true",
+        "my": "tag",
+    }
+    redrive_policy_resp = sqs_client.get_queue_attributes(
+        QueueUrl=queue["QueueUrl"], AttributeNames=["RedrivePolicy"]
+    )
+    assert json.loads(redrive_policy_resp["Attributes"]["RedrivePolicy"]) == {
         "maxReceiveCount": 5,
-        "deadLetterTargetArn": "arn:aws:sqs:us-east-1:123456789012:foo-dead-letter",
+        "deadLetterTargetArn": f"arn:aws:sqs:us-east-1:{moto.core.DEFAULT_ACCOUNT_ID}:foo-dead-letter",
     }
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_tqp():
     poller = TopicQueuePoller("foo", prefix="test")
 
@@ -45,7 +53,7 @@ def test_tqp():
     t.start()
 
     # making sure poller is polling
-    time.sleep(0.1)
+    time.sleep(0.5)
 
     boto3.client("sns").publish(
         TopicArn="arn:aws:sns:us-east-1:123456789012:test--my_event",
@@ -53,13 +61,12 @@ def test_tqp():
     )
 
     # making sure message is processed
-    time.sleep(0.05)
+    time.sleep(0.5)
 
     assert handled_item == {"bar": "baz"}
 
 
-@mock_sqs
-@mock_s3
+@mock_aws
 def test_s3():
     s3 = boto3.client("s3")
     s3.create_bucket(Bucket="bucket_foo")
