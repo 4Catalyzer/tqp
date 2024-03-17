@@ -1,11 +1,8 @@
-import logging
-
 import flask
-
+import logging
 from flask import g
 
 from .topic_queue_poller import TopicQueuePoller
-
 
 # -----------------------------------------------------------------------------
 

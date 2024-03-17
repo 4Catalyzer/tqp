@@ -1,7 +1,6 @@
+import boto3
 import json
 import logging
-
-import boto3
 
 from .exceptions import InvalidMessageError
 from .threading_utils import Interval
@@ -32,7 +31,9 @@ def _create_queue_raw(name, attributes, *, tags):
 
     def _create_queue():
         return sqs_resource.create_queue(
-            QueueName=name, Attributes=attributes, tags=tags,
+            QueueName=name,
+            Attributes=attributes,
+            tags=tags,
         )
 
     try:
@@ -184,7 +185,10 @@ class TopicQueuePoller(QueuePollerBase):
             "handler": handler,
             "message": message,
             "meta": (
-                {"body": body, "topic": topic[len(self.prefix) :],}
+                {
+                    "body": body,
+                    "topic": topic[len(self.prefix) :],
+                }
                 if with_meta
                 else None
             ),
@@ -248,7 +252,11 @@ class TopicQueuePoller(QueuePollerBase):
         handler(message, **extra_call_kwargs)
 
     def handler(
-        self, *topics, parse_json=True, with_meta=False, use_prefix=True,
+        self,
+        *topics,
+        parse_json=True,
+        with_meta=False,
+        use_prefix=True,
     ):
         def decorator(func):
             for topic in topics:
@@ -258,7 +266,9 @@ class TopicQueuePoller(QueuePollerBase):
                     topic_name = topic
 
                 if topic_name in self.handlers:
-                    raise ValueError(f"Topic {topic_name} already registered",)
+                    raise ValueError(
+                        f"Topic {topic_name} already registered",
+                    )
 
                 self.handlers[topic_name] = func, parse_json, with_meta
 
@@ -317,7 +327,12 @@ class TopicQueuePoller(QueuePollerBase):
 
         queue.set_attributes(
             Attributes=_jsonify_dictionary(
-                {"Policy": {"Version": "2012-10-17", "Statement": statement,},}
+                {
+                    "Policy": {
+                        "Version": "2012-10-17",
+                        "Statement": statement,
+                    },
+                }
             )
         )
 
