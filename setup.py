@@ -26,7 +26,7 @@ setup(
     extras_require={
         "dev": [
             "pytest",
-            "fourmat~=0.11.1",
+            "fourmat~=1.0",
             "pre-commit",
             "moto[server]",
             "boto3",
