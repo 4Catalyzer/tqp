@@ -49,11 +49,12 @@ def test_tqp():
         nonlocal handled_item
         handled_item = item
 
+    # ensure_queue() must run in the main thread so moto mock state
+    # is visible when publishing below
+    poller.ensure_queue()
+
     t = Thread(target=poller.start, daemon=True)
     t.start()
-
-    # making sure poller is polling
-    time.sleep(0.5)
 
     boto3.client("sns").publish(
         TopicArn="arn:aws:sns:us-east-1:123456789012:test--my_event",
