@@ -1,6 +1,7 @@
 import boto3
 import json
 import logging
+import signal
 
 from .exceptions import InvalidMessageError
 from .threading_utils import Interval
@@ -88,6 +89,7 @@ class QueuePollerBase:
         self.queue_attributes = kwargs
         self.tags = tags or {}
         self.queue = None
+        self._shutdown = False
         if prefix:
             self.tags["prefix"] = prefix
 
@@ -141,9 +143,23 @@ class QueuePollerBase:
         queue = self.ensure_queue()
         self.logger.info("starting to poll")
 
+        def _handle_shutdown(signum, frame):
+            self.logger.info(
+                "received signal %s, finishing current work before shutdown",
+                signal.Signals(signum).name,
+            )
+            self._shutdown = True
+
+        try:
+            signal.signal(signal.SIGTERM, _handle_shutdown)
+            signal.signal(signal.SIGINT, _handle_shutdown)
+        except ValueError:
+            # signal handlers can only be registered from the main thread
+            pass
+
         visibility_timeout = int(queue.attributes["VisibilityTimeout"])
 
-        while True:
+        while not self._shutdown:
             messages = queue.receive_messages(
                 MessageAttributeNames=["All"],
                 # maximum amount. helps for most efficient long polling
@@ -158,7 +174,15 @@ class QueuePollerBase:
                 (queue, messages, visibility_timeout),
             ):
                 for msg in messages:
+                    if self._shutdown:
+                        self.logger.info(
+                            "shutdown requested, leaving %d message(s) for redelivery",
+                            len(messages) - messages.index(msg),
+                        )
+                        break
                     self._handle_message(msg)
+
+        self.logger.info("poller shut down gracefully")
 
 
 # -----------------------------------------------------------------------------
