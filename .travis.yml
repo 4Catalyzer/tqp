@@ -9,6 +9,7 @@ jobs:
     - { python: '3.12', env: TOXENV=lint }
     - { python: '3.12', env: TOXENV=py312 }
     - { python: '3.13', env: TOXENV=py313 }
+    - { python: '3.14', env: TOXENV=py314 }
 
     - stage: Release
       if: tag IS present
