@@ -56,9 +56,6 @@ def test_tqp():
     t = Thread(target=poller.start, daemon=True)
     t.start()
 
-    # making sure poller is polling
-    time.sleep(0.5)
-
     boto3.client("sns").publish(
         TopicArn="arn:aws:sns:us-east-1:123456789012:test--my_event",
         Message='{"bar": "baz"}',
