@@ -49,6 +49,10 @@ def test_tqp():
         nonlocal handled_item
         handled_item = item
 
+    # Set up the queue and subscriptions in the main thread so moto
+    # state is visible when publishing below.
+    poller.ensure_queue()
+
     t = Thread(target=poller.start, daemon=True)
     t.start()
 

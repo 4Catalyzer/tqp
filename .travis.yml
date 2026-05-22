@@ -6,13 +6,13 @@ script: tox
 
 jobs:
   include:
-    - { python: '3.9', env: TOXENV=lint }
-    - { python: '3.9', env: TOXENV=py39 }
-    - { python: '3.10', env: TOXENV=py310 }
+    - { python: '3.12', env: TOXENV=lint }
+    - { python: '3.12', env: TOXENV=py312 }
+    - { python: '3.13', env: TOXENV=py313 }
 
     - stage: Release
       if: tag IS present
-      python: "3.9"
+      python: "3.12"
       env: []
       before_install: skip
       install: skip
